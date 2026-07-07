@@ -7,6 +7,7 @@ local BuffSettings = require("scripts/settings/buff/buff_settings")
 local Breeds = require("scripts/settings/breed/breeds")
 local MinionPerception = require("scripts/utilities/minion_perception")
 local WeaponTemplate = require("scripts/utilities/weapon/weapon_template")
+local Action = require("scripts/utilities/action/action")
 
 local AUTO_AIM_KEYWORD = BuffSettings.keywords.enable_auto_aim
 local TARGET_RESULTS = {}
@@ -17,6 +18,7 @@ local TARGET_NODES = {
 	torso = "enemy_aim_target_02",
 }
 local CONE_ANGLES = {
+	slim = 2,
 	narrow = 4,
 	wide = 10,
 	very_wide = 18,
@@ -86,6 +88,8 @@ local active = true
 local activation_mode = "ranged"
 local cached_aiming = false
 local last_aiming_t = 0
+local cached_shooting = false
+local last_shooting_t = 0
 local target_node = TARGET_NODES.head
 local cone_angle = CONE_ANGLES.wide
 local target_range = RANGE_VALUES.medium
@@ -98,8 +102,9 @@ local include_specialists = true
 local include_bosses = true
 local include_regulars = false
 local breed_priorities = {}
-local AIM_GRACE_WINDOW = 0.35
-local TARGET_RETENTION_WINDOW = 0.3
+local AIM_GRACE_WINDOW = 0.1
+local SHOOTING_GRACE_WINDOW = 0.1
+local TARGET_RETENTION_WINDOW = 0.1
 local hooked_require_tables = setmetatable({}, { __mode = "k" })
 local retained_target_unit = nil
 local retained_target_until = 0
@@ -234,6 +239,32 @@ local function is_alternate_fire_active(unit_data)
 	return cached_aiming or last_aiming_t > 0 and gameplay_time() - last_aiming_t <= AIM_GRACE_WINDOW
 end
 
+local function is_shooting(unit_data)
+	if not unit_data then
+		return false
+	end
+
+	local weapon_action_component = unit_data:read_component("weapon_action")
+	local weapon_template = current_weapon_template(unit_data)
+	local _, action_settings = Action.current_action(weapon_action_component, weapon_template)
+
+	if action_settings then
+		local kind = action_settings.kind
+		local is_currently_shooting = kind and (string.find(kind, "^shoot") or kind == "windup" or string.find(kind, "charge") or kind == "true_aim" or kind == "aim_charge") or action_settings.fire_configuration ~= nil
+
+		if is_currently_shooting then
+			cached_shooting = true
+			last_shooting_t = gameplay_time()
+
+			return true
+		end
+	end
+
+	cached_shooting = false
+
+	return last_shooting_t > 0 and gameplay_time() - last_shooting_t <= SHOOTING_GRACE_WINDOW
+end
+
 local function should_enable_auto_aim(unit)
 	if not active or activation_mode == "disabled" then
 		return false
@@ -251,6 +282,10 @@ local function should_enable_auto_aim(unit)
 
 	if activation_mode == "ranged" then
 		return true
+	end
+
+	if activation_mode == "ranged_hold_shoot" then
+		return is_shooting(unit_data)
 	end
 
 	return is_alternate_fire_active(unit_data)

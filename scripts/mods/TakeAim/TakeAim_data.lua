@@ -133,6 +133,7 @@ return {
 				default_value = "ranged",
 				options = {
 					{ text = "activation_mode_ads_only", value = "ads_only" },
+					{ text = "activation_mode_ranged_hold_shoot", value = "ranged_hold_shoot" },
 					{ text = "activation_mode_ranged", value = "ranged" },
 					{ text = "activation_mode_disabled", value = "disabled" },
 				},
@@ -142,6 +143,7 @@ return {
 				type = "dropdown",
 				default_value = "wide",
 				options = {
+					{ text = "assist_cone_slim", value = "slim" },
 					{ text = "assist_cone_narrow", value = "narrow" },
 					{ text = "assist_cone_wide", value = "wide" },
 					{ text = "assist_cone_very_wide", value = "very_wide" },

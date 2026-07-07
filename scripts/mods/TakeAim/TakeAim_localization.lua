@@ -26,6 +26,9 @@ local localization = {
 	activation_mode_ranged = {
 		en = "Always while ranged",
 	},
+	activation_mode_ranged_hold_shoot = {
+		en = "Ranged (holding shoot)",
+	},
 	activation_mode_disabled = {
 		en = "Disabled",
 	},
@@ -37,6 +40,9 @@ local localization = {
 	},
 	assist_cone_narrow = {
 		en = "Narrow",
+	},
+	assist_cone_slim = {
+		en = "Slim",
 	},
 	assist_cone_wide = {
 		en = "Wide",
