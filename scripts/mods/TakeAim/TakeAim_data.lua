@@ -215,6 +215,13 @@ return {
 					{ text = "aim_point_torso", value = "torso" },
 				},
 			},
+			{
+				setting_id = "aim_offset",
+				type = "numeric",
+				default_value = 0,
+				range = { -0.5, 0.5 },
+                decimals_number = 2
+			},
 		},
 	},
 }

@@ -182,6 +182,12 @@ local localization = {
 	aim_point_torso = {
 		en = "Torso",
 	},
+	aim_offset = {
+		en = "Vertical Aim Offset",
+	},
+	aim_offset_description = {
+		en = "Adds a vertical offset to the targeted node. Useful for aiming slightly above or below the head/torso.",
+	},
 }
 
 local function add_breed_localization(breed_name, breed_data)

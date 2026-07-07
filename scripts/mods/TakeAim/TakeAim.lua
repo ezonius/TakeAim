@@ -91,6 +91,7 @@ local last_aiming_t = 0
 local cached_shooting = false
 local last_shooting_t = 0
 local target_node = TARGET_NODES.head
+local aim_offset = 0
 local cone_angle = CONE_ANGLES.wide
 local target_range = RANGE_VALUES.medium
 local target_filter = "high_value"
@@ -121,6 +122,7 @@ local function refresh_settings()
 	active = mod:get("enabled") ~= false
 	activation_mode = mod:get("activation_mode") or "ranged"
 	target_node = TARGET_NODES[mod:get("aim_point") or "head"] or TARGET_NODES.head
+	aim_offset = mod:get("aim_offset") or 0
 	cone_angle = CONE_ANGLES[mod:get("assist_cone") or "wide"] or CONE_ANGLES.wide
 	target_range = RANGE_VALUES[mod:get("target_range") or "medium"] or RANGE_VALUES.medium
 	target_filter = mod:get("target_filter") or "high_value"
@@ -303,7 +305,13 @@ local function target_node_position(unit)
 	end
 
 	local position_ok, position = pcall(function()
-		return Unit.world_position(unit, Unit.node(unit, target_node))
+		local node_pos = Unit.world_position(unit, Unit.node(unit, target_node))
+
+		if aim_offset ~= 0 then
+			node_pos.z = node_pos.z + aim_offset
+		end
+
+		return node_pos
 	end)
 
 	return position_ok and position or POSITION_LOOKUP and POSITION_LOOKUP[unit] or nil
