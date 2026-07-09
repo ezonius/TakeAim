@@ -103,9 +103,9 @@ local include_specialists = true
 local include_bosses = true
 local include_regulars = false
 local breed_priorities = {}
-local AIM_GRACE_WINDOW = 0.1
-local SHOOTING_GRACE_WINDOW = 0.1
-local TARGET_RETENTION_WINDOW = 0.1
+local AIM_GRACE_WINDOW = 0.3
+local SHOOTING_GRACE_WINDOW = 0.3
+local TARGET_RETENTION_WINDOW = 0.3
 local hooked_require_tables = setmetatable({}, { __mode = "k" })
 local retained_target_unit = nil
 local retained_target_until = 0
@@ -252,7 +252,7 @@ local function is_shooting(unit_data)
 
 	if action_settings then
 		local kind = action_settings.kind
-		local is_currently_shooting = kind and (string.find(kind, "^shoot") or kind == "windup" or string.find(kind, "charge") or kind == "true_aim" or kind == "aim_charge") or action_settings.fire_configuration ~= nil
+		local is_currently_shooting = kind and (string.find(kind, "^shoot") or kind == "windup" or string.find(kind, "charge") or kind == "true_aim" or kind == "aim_charge" or kind == "spawn_projectile" or kind == "trigger_explosion" or kind == "chain_lightning") or action_settings.fire_configuration ~= nil
 
 		if is_currently_shooting then
 			cached_shooting = true
