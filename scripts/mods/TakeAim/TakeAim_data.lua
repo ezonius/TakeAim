@@ -65,14 +65,23 @@ local special_priorities = {}
 local boss_priorities = {}
 local other_priorities = {}
 
+local REQUESTED_BREEDS = {
+	cultist_assault = true,
+	cultist_vanguard = true,
+	renegade_assault = true,
+	renegade_rifleman = true,
+	renegade_vanguard = true,
+}
+
 for breed_name, breed_data in pairs(Breeds) do
-	if Breed.is_minion(breed_data) and breed_data.smart_tag_target_type == "breed" then
+	if Breed.is_minion(breed_data) and (breed_data.smart_tag_target_type == "breed" or REQUESTED_BREEDS[breed_name]) then
 		local priority_dropdown = create_breed_priority_dropdown(breed_name, default_breed_priority(breed_name, breed_data))
 		local tags = breed_data.tags or {}
 
-		if breed_data.is_boss then
+		local is_boss = breed_data.is_boss or tags.monster or tags.captain or tags.cultist_captain
+		if is_boss then
 			boss_priorities[#boss_priorities + 1] = priority_dropdown
-		elseif tags.elite then
+		elseif tags.elite or tags.ogryn then
 			elite_priorities[#elite_priorities + 1] = priority_dropdown
 		elseif tags.special then
 			special_priorities[#special_priorities + 1] = priority_dropdown
@@ -161,11 +170,12 @@ return {
 			},
 			{
 				setting_id = "target_filter",
-				type = "dropdown",
-				default_value = "high_value",
-				options = {
-					{ text = "target_filter_high_value", value = "high_value" },
-					{ text = "target_filter_all", value = "all" },
+				type = "group",
+				sub_widgets = {
+					elite_weight_widget,
+					specialist_weight_widget,
+					boss_weight_widget,
+					regular_weight_widget,
 				},
 			},
 			{
@@ -184,16 +194,6 @@ return {
 				setting_id = "threat_override",
 				type = "checkbox",
 				default_value = true,
-			},
-			{
-				setting_id = "aim_weighting_settings",
-				type = "group",
-				sub_widgets = {
-					boss_weight_widget,
-					specialist_weight_widget,
-					elite_weight_widget,
-					regular_weight_widget,
-				},
 			},
 			{
 				setting_id = "camera_snap",
@@ -221,6 +221,27 @@ return {
 				default_value = 0,
 				range = { -0.5, 0.5 },
                 decimals_number = 2
+			},
+			{
+				setting_id = "aim_grace_window",
+				type = "numeric",
+				default_value = 0.3,
+				range = { 0, 1.0 },
+				decimals_number = 2,
+			},
+			{
+				setting_id = "shooting_grace_window",
+				type = "numeric",
+				default_value = 0.3,
+				range = { 0, 1.0 },
+				decimals_number = 2,
+			},
+			{
+				setting_id = "target_retention_window",
+				type = "numeric",
+				default_value = 0.3,
+				range = { 0, 1.0 },
+				decimals_number = 2,
 			},
 		},
 	},

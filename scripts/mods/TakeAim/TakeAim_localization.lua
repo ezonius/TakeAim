@@ -71,12 +71,6 @@ local localization = {
 	target_filter_description = {
 		en = "Choose which enemies the stronger cone assist is allowed to target.",
 	},
-	target_filter_high_value = {
-		en = "Elites, specials, bosses",
-	},
-	target_filter_all = {
-		en = "All enemies",
-	},
 	priority_list = {
 		en = "Target Preference",
 	},
@@ -188,6 +182,24 @@ local localization = {
 	aim_offset_description = {
 		en = "Adds a vertical offset to the targeted node. Useful for aiming slightly above or below the head/torso.",
 	},
+	aim_grace_window = {
+		en = "Aim Grace Window",
+	},
+	aim_grace_window_description = {
+		en = "Controls how long the auto-aim stays active after you stop aiming.",
+	},
+	shooting_grace_window = {
+		en = "Shooting Grace Window",
+	},
+	shooting_grace_window_description = {
+		en = "Controls how long the auto-aim stays active after you stop shooting.",
+	},
+	target_retention_window = {
+		en = "Target Retention Window",
+	},
+	target_retention_window_description = {
+		en = "Controls how long Take Aim stays locked on the current target before looking for a new one.",
+	},
 }
 
 local function add_breed_localization(breed_name, breed_data)
@@ -206,8 +218,16 @@ local function add_breed_localization(breed_name, breed_data)
 	}
 end
 
+local REQUESTED_BREEDS = {
+	cultist_assault = true,
+	cultist_vanguard = true,
+	renegade_assault = true,
+	renegade_rifleman = true,
+	renegade_vanguard = true,
+}
+
 for breed_name, breed_data in pairs(Breeds) do
-	if Breed.is_minion(breed_data) and breed_data.smart_tag_target_type == "breed" then
+	if Breed.is_minion(breed_data) and (breed_data.smart_tag_target_type == "breed" or REQUESTED_BREEDS[breed_name]) then
 		add_breed_localization(breed_name, breed_data)
 	end
 end

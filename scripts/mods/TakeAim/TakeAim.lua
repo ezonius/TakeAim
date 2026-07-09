@@ -77,8 +77,16 @@ local function default_breed_priority(breed_name, breed_data)
 	return 0
 end
 
+local REQUESTED_BREEDS = {
+	cultist_assault = true,
+	cultist_vanguard = true,
+	renegade_assault = true,
+	renegade_rifleman = true,
+	renegade_vanguard = true,
+}
+
 for breed_name, breed_data in pairs(Breeds) do
-	if Breed.is_minion(breed_data) and breed_data.smart_tag_target_type == "breed" then
+	if Breed.is_minion(breed_data) and (breed_data.smart_tag_target_type == "breed" or REQUESTED_BREEDS[breed_name]) then
 		DEFAULT_BREED_PRIORITIES[breed_name] = default_breed_priority(breed_name, breed_data)
 		BREED_PRIORITY_KEYS[#BREED_PRIORITY_KEYS + 1] = breed_name
 	end
@@ -94,7 +102,6 @@ local target_node = TARGET_NODES.head
 local aim_offset = 0
 local cone_angle = CONE_ANGLES.wide
 local target_range = RANGE_VALUES.medium
-local target_filter = "high_value"
 local priority_list = "custom"
 local threat_override = true
 local camera_snap = "soft"
@@ -125,9 +132,12 @@ local function refresh_settings()
 	aim_offset = mod:get("aim_offset") or 0
 	cone_angle = CONE_ANGLES[mod:get("assist_cone") or "wide"] or CONE_ANGLES.wide
 	target_range = RANGE_VALUES[mod:get("target_range") or "medium"] or RANGE_VALUES.medium
-	target_filter = mod:get("target_filter") or "high_value"
 	priority_list = mod:get("priority_list") or "custom"
 	camera_snap = mod:get("camera_snap") or "soft"
+
+	AIM_GRACE_WINDOW = mod:get("aim_grace_window") or 0.3
+	SHOOTING_GRACE_WINDOW = mod:get("shooting_grace_window") or 0.3
+	TARGET_RETENTION_WINDOW = mod:get("target_retention_window") or 0.3
 
 	threat_override = mod:get("threat_override") ~= false
 	include_elites = mod:get("include_elites") ~= false
@@ -405,7 +415,7 @@ local function custom_category_enabled(breed)
 		return false
 	elseif is_boss_breed(breed) then
 		return include_bosses
-	elseif tags and tags.elite then
+	elseif tags and (tags.elite or tags.ogryn) then
 		return include_elites
 	elseif tags and tags.special then
 		return include_specialists
@@ -475,39 +485,11 @@ local function target_priority_rank(unit, unit_data_extension)
 		return 4
 	elseif tags and (tags.elite or tags.ogryn) then
 		return 5
+	elseif REQUESTED_BREEDS[breed_name] then
+		return 7
 	end
 
 	return 6
-end
-
-local function is_high_value_target(unit_data_extension)
-	local breed = breed_from_unit_data(unit_data_extension)
-	local tags = breed and breed.tags
-
-	if breed and breed.is_boss then
-		return true
-	end
-
-	if not tags then
-		return false
-	end
-
-	return tags.special
-		or tags.elite
-		or tags.ogryn
-		or tags.monster
-		or tags.captain
-		or tags.cultist_captain
-end
-
-local function custom_target_allowed(unit, unit_data_extension)
-	local breed = breed_from_unit_data(unit_data_extension)
-
-	if not custom_category_enabled(breed) then
-		return false
-	end
-
-	return custom_breed_priority(unit, unit_data_extension) > 0
 end
 
 local function target_allowed(unit, unit_data_extension)
@@ -517,15 +499,15 @@ local function target_allowed(unit, unit_data_extension)
 		return false
 	end
 
+	if not custom_category_enabled(breed) then
+		return false
+	end
+
 	if priority_list == "custom" then
-		return custom_target_allowed(unit, unit_data_extension)
+		return custom_breed_priority(unit, unit_data_extension) > 0
 	end
 
-	if target_filter == "all" then
-		return true
-	end
-
-	return is_high_value_target(unit_data_extension)
+	return true
 end
 
 local function retained_target_position(smart_targeting_extension, ray_origin, forward, max_angle)
