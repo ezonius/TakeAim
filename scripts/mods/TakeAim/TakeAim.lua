@@ -8,6 +8,8 @@ local Breeds = require("scripts/settings/breed/breeds")
 local MinionPerception = require("scripts/utilities/minion_perception")
 local WeaponTemplate = require("scripts/utilities/weapon/weapon_template")
 local Action = require("scripts/utilities/action/action")
+local Recoil = require("scripts/utilities/recoil")
+local Sway = require("scripts/utilities/sway")
 
 local AUTO_AIM_KEYWORD = BuffSettings.keywords.enable_auto_aim
 local TARGET_RESULTS = {}
@@ -55,6 +57,9 @@ local CAMERA_SNAP_SPEEDS = {
 	soft = 8,
 	strong = 16,
 	instant = -1,
+	crosshair_soft = 8,
+	crosshair_strong = 16,
+	crosshair_instant = -1,
 }
 local DEFAULT_BREED_PRIORITIES = {}
 local BREED_PRIORITY_KEYS = {}
@@ -105,6 +110,7 @@ local target_range = RANGE_VALUES.medium
 local priority_list = "custom"
 local threat_override = true
 local camera_snap = "soft"
+local is_crosshair_snap_mode = false
 local include_elites = true
 local include_specialists = true
 local include_bosses = true
@@ -134,6 +140,7 @@ local function refresh_settings()
 	target_range = RANGE_VALUES[mod:get("target_range") or "medium"] or RANGE_VALUES.medium
 	priority_list = mod:get("priority_list") or "custom"
 	camera_snap = mod:get("camera_snap") or "soft"
+	is_crosshair_snap_mode = camera_snap ~= nil and string.sub(camera_snap, 1, 10) == "crosshair_"
 
 	AIM_GRACE_WINDOW = mod:get("aim_grace_window") or 0.3
 	SHOOTING_GRACE_WINDOW = mod:get("shooting_grace_window") or 0.3
@@ -184,6 +191,44 @@ local function local_smart_targeting_extension()
 	local unit = local_player_unit()
 
 	return unit and ScriptUnit.has_extension(unit, "smart_targeting_system") or nil
+end
+
+local function weapon_recoil_sway_offset()
+	local unit = local_player_unit()
+
+	if not unit then
+		return nil
+	end
+
+	local weapon_extension = ScriptUnit.has_extension(unit, "weapon_system")
+
+	if not weapon_extension then
+		return nil
+	end
+
+	local unit_data = unit_data_extension(unit)
+
+	if not unit_data then
+		return nil
+	end
+
+	local recoil_template = weapon_extension:recoil_template()
+	local recoil_component = unit_data:read_component("recoil")
+	local movement_state_component = unit_data:read_component("movement_state")
+	local locomotion_component = unit_data:read_component("locomotion")
+	local inair_state_component = unit_data:read_component("inair_state")
+	local base_rotation = Quaternion.identity()
+	local with_recoil = Recoil.apply_weapon_recoil_rotation(recoil_template, recoil_component, movement_state_component, locomotion_component, inair_state_component, base_rotation)
+
+	if not with_recoil then
+		return nil
+	end
+
+	local sway_template = weapon_extension:sway_template()
+	local sway_component = unit_data:read_component("sway")
+	local with_sway = Sway.apply_sway_rotation(sway_template, sway_component, with_recoil)
+
+	return with_sway or nil
 end
 
 local function current_weapon_template(unit_data)
@@ -724,17 +769,31 @@ mod:hook_require("scripts/utilities/aim_assist", function(AimAssist)
 		end
 
 		local smart_targeting_extension = local_smart_targeting_extension()
-		local raw_aim_rotation = Quaternion.from_yaw_pitch_roll(yaw, pitch, 0)
-		local target_position = find_cone_target(smart_targeting_extension, raw_aim_rotation)
+		local current_rotation = Quaternion.from_yaw_pitch_roll(yaw, pitch, 0)
+		local target_position = find_cone_target(smart_targeting_extension, current_rotation)
 
 		if not target_position or not position then
 			return yaw, pitch
 		end
 
 		local target_rotation = Quaternion.look(target_position - position, Vector3.up())
-		local current_rotation = Quaternion.from_yaw_pitch_roll(yaw, pitch, 0)
 		local lerp_t = snap_speed < 0 and 1 or math.clamp(main_dt * snap_speed, 0, 1)
-		local snapped_rotation = Quaternion.lerp(current_rotation, target_rotation, lerp_t)
+		local snapped_rotation
+
+		if is_crosshair_snap_mode then
+			local offset_rotation = weapon_recoil_sway_offset()
+
+			if offset_rotation then
+				local crosshair_rotation = Quaternion.multiply(current_rotation, offset_rotation)
+				local snapped_crosshair = Quaternion.lerp(crosshair_rotation, target_rotation, lerp_t)
+
+				snapped_rotation = Quaternion.multiply(snapped_crosshair, Quaternion.inverse(offset_rotation))
+			else
+				snapped_rotation = Quaternion.lerp(current_rotation, target_rotation, lerp_t)
+			end
+		else
+			snapped_rotation = Quaternion.lerp(current_rotation, target_rotation, lerp_t)
+		end
 
 		return Quaternion.yaw(snapped_rotation), Quaternion.pitch(snapped_rotation)
 	end)

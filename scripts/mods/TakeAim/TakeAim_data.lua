@@ -195,17 +195,20 @@ return {
 				type = "checkbox",
 				default_value = true,
 			},
-			{
-				setting_id = "camera_snap",
-				type = "dropdown",
-				default_value = "soft",
-				options = {
-					{ text = "camera_snap_soft", value = "soft" },
-					{ text = "camera_snap_strong", value = "strong" },
-					{ text = "camera_snap_instant", value = "instant" },
-					{ text = "camera_snap_off", value = "off" },
-				},
-			},
+ 			{
+ 				setting_id = "camera_snap",
+ 				type = "dropdown",
+ 				default_value = "soft",
+ 				options = {
+ 					{ text = "camera_snap_soft", value = "soft" },
+ 					{ text = "camera_snap_strong", value = "strong" },
+ 					{ text = "camera_snap_instant", value = "instant" },
+ 					{ text = "camera_snap_crosshair_soft", value = "crosshair_soft" },
+ 					{ text = "camera_snap_crosshair_strong", value = "crosshair_strong" },
+ 					{ text = "camera_snap_crosshair_instant", value = "crosshair_instant" },
+ 					{ text = "camera_snap_off", value = "off" },
+ 				},
+ 			},
 			{
 				setting_id = "aim_point",
 				type = "dropdown",

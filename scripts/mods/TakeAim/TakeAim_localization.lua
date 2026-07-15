@@ -150,7 +150,7 @@ local localization = {
 		en = "Camera Snap",
 	},
 	camera_snap_description = {
-		en = "Pulls the camera toward the selected assist target while Take Aim is active.",
+		en = "Pulls the camera toward the selected assist target while Take Aim is active. Crosshair modes aim the crosshair (weapon aim) at the target instead of the camera center, accounting for recoil and sway.",
 	},
 	camera_snap_soft = {
 		en = "Soft",
@@ -160,6 +160,15 @@ local localization = {
 	},
 	camera_snap_instant = {
 		en = "Instant",
+	},
+	camera_snap_crosshair_soft = {
+		en = "Crosshair (Soft)",
+	},
+	camera_snap_crosshair_strong = {
+		en = "Crosshair (Strong)",
+	},
+	camera_snap_crosshair_instant = {
+		en = "Crosshair (Instant)",
 	},
 	camera_snap_off = {
 		en = "Off",
