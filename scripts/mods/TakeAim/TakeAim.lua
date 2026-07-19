@@ -7,7 +7,6 @@ local BuffSettings = require("scripts/settings/buff/buff_settings")
 local Breeds = require("scripts/settings/breed/breeds")
 local MinionPerception = require("scripts/utilities/minion_perception")
 local WeaponTemplate = require("scripts/utilities/weapon/weapon_template")
-local Action = require("scripts/utilities/action/action")
 local Recoil = require("scripts/utilities/recoil")
 local Sway = require("scripts/utilities/sway")
 
@@ -296,25 +295,18 @@ local function is_alternate_fire_active(unit_data)
 	return cached_aiming or last_aiming_t > 0 and gameplay_time() - last_aiming_t <= AIM_GRACE_WINDOW
 end
 
-local function is_shooting(unit_data)
-	if not unit_data then
+local function is_shooting(unit)
+	if not unit then
 		return false
 	end
 
-	local weapon_action_component = unit_data:read_component("weapon_action")
-	local weapon_template = current_weapon_template(unit_data)
-	local _, action_settings = Action.current_action(weapon_action_component, weapon_template)
+	local input_extension = ScriptUnit.has_extension(unit, "input_system")
 
-	if action_settings then
-		local kind = action_settings.kind
-		local is_currently_shooting = kind and (string.find(kind, "^shoot") or kind == "windup" or string.find(kind, "charge") or kind == "true_aim" or kind == "aim_charge" or kind == "spawn_projectile" or kind == "trigger_explosion" or kind == "chain_lightning") or action_settings.fire_configuration ~= nil
+	if input_extension and input_extension:get("action_one_hold") then
+		cached_shooting = true
+		last_shooting_t = gameplay_time()
 
-		if is_currently_shooting then
-			cached_shooting = true
-			last_shooting_t = gameplay_time()
-
-			return true
-		end
+		return true
 	end
 
 	cached_shooting = false
@@ -342,7 +334,7 @@ local function should_enable_auto_aim(unit)
 	end
 
 	if activation_mode == "ranged_hold_shoot" then
-		return is_shooting(unit_data)
+		return is_shooting(unit)
 	end
 
 	return is_alternate_fire_active(unit_data)

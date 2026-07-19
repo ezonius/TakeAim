@@ -27,7 +27,7 @@ local localization = {
 		en = "Always while ranged",
 	},
 	activation_mode_ranged_hold_shoot = {
-		en = "Ranged (holding shoot)",
+		en = "Ranged (holding shoot input)",
 	},
 	activation_mode_disabled = {
 		en = "Disabled",
@@ -201,7 +201,7 @@ local localization = {
 		en = "Shooting Grace Window",
 	},
 	shooting_grace_window_description = {
-		en = "Controls how long the auto-aim stays active after you stop shooting.",
+		en = "Controls how long the auto-aim stays active after you release the shoot input.",
 	},
 	target_retention_window = {
 		en = "Target Retention Window",
