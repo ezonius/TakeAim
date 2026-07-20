@@ -183,19 +183,25 @@ return {
 				options = {
 					{ text = "activation_mode_ads_only",          value = "ads_only" },
 					{ text = "activation_mode_ranged_hold_shoot", value = "ranged_hold_shoot" },
-					{ text = "activation_mode_keybind",           value = "keybind" },
 					{ text = "activation_mode_ranged",            value = "ranged" },
 					{ text = "activation_mode_disabled",          value = "disabled" },
 				},
 			},
 			{
-				setting_id      = "aim_assist_keybind",
-				type            = "keybind",
-				default_value   = {},
-				keybind_global  = false,
-				keybind_trigger = "held",
-				keybind_type    = "function_call",
-				function_name   = "kb_aim_assist_held",
+				setting_id = "aim_assist_keybind_enabled",
+				type = "checkbox",
+				default_value = false,
+				sub_widgets = {
+					{
+						setting_id      = "aim_assist_keybind",
+						type            = "keybind",
+						default_value   = {},
+						keybind_global  = false,
+						keybind_trigger = "held",
+						keybind_type    = "function_call",
+						function_name   = "kb_aim_assist_held",
+					},
+				},
 			},
 			{
 				setting_id = "assist_cone",

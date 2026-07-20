@@ -29,17 +29,20 @@ local localization = {
 	activation_mode_ranged_hold_shoot = {
 		en = "Ranged (holding shoot input)",
 	},
-	activation_mode_keybind = {
-		en = "Keybind (hold to aim)",
-	},
 	activation_mode_disabled = {
 		en = "Disabled",
 	},
-	aim_assist_keybind = {
+	aim_assist_keybind_enabled = {
 		en = "Aim Assist Keybind",
 	},
+	aim_assist_keybind_enabled_description = {
+		en = "Enable an additional hold keybind that activates Take Aim's camera snap and aim assist on top of the selected Activation Mode.",
+	},
+	aim_assist_keybind = {
+		en = "Aim Assist Key",
+	},
 	aim_assist_keybind_description = {
-		en = "Hold this key to activate Take Aim's camera snap and aim assist while a ranged weapon is equipped. Only used when Activation Mode is set to Keybind.",
+		en = "Hold this key to activate Take Aim's camera snap and aim assist while a ranged weapon is equipped.",
 	},
 	assist_cone = {
 		en = "Assist Cone",

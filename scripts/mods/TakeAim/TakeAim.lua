@@ -121,6 +121,7 @@ local cached_aiming = false
 local last_aiming_t = 0
 local cached_shooting = false
 local last_shooting_t = 0
+local aim_assist_keybind_enabled = false
 local aim_assist_keybind_held = false
 local target_node = TARGET_NODES.head
 local aim_offset = 0
@@ -155,6 +156,7 @@ end
 local function refresh_settings()
 	active = mod:get("enabled") ~= false
 	activation_mode = mod:get("activation_mode") or "ranged"
+	aim_assist_keybind_enabled = mod:get("aim_assist_keybind_enabled") == true
 	target_node = TARGET_NODES[mod:get("aim_point") or "head"] or TARGET_NODES.head
 	aim_offset = mod:get("aim_offset") or 0
 	cone_angle = CONE_ANGLES[mod:get("assist_cone") or "wide"] or CONE_ANGLES.wide
@@ -386,16 +388,16 @@ local function should_enable_auto_aim(unit)
 		return false
 	end
 
+	if aim_assist_keybind_enabled and aim_assist_keybind_held then
+		return true
+	end
+
 	if activation_mode == "ranged" then
 		return true
 	end
 
 	if activation_mode == "ranged_hold_shoot" then
 		return is_shooting(unit)
-	end
-
-	if activation_mode == "keybind" then
-		return aim_assist_keybind_held
 	end
 
 	return is_alternate_fire_active(unit_data)
