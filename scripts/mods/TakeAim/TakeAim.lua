@@ -896,7 +896,10 @@ mod:hook_require("scripts/utilities/aim_assist", function(AimAssist)
 
 			if offset_rotation then
 				local crosshair_rotation = Quaternion.multiply(current_rotation, offset_rotation)
-				local snapped_crosshair = Quaternion.lerp(crosshair_rotation, target_rotation, lerp_t)
+				local angle_to_target = Quaternion.angle(crosshair_rotation, target_rotation)
+				local error_boost = math.min(1 + degrees_to_radians(2) / math.max(angle_to_target, degrees_to_radians(0.1)), 4)
+				local effective_lerp = math.clamp(lerp_t * error_boost, 0, 1)
+				local snapped_crosshair = Quaternion.lerp(crosshair_rotation, target_rotation, effective_lerp)
 
 				snapped_rotation = Quaternion.multiply(snapped_crosshair, Quaternion.inverse(offset_rotation))
 			else
