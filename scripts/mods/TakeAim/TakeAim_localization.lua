@@ -191,8 +191,8 @@ local localization = {
 	aim_point_description = {
 		en = "Choose the enemy aim node the assisted shot should use.",
 	},
-	aim_point_head = {
-		en = "Head",
+	aim_point_weakspot = {
+		en = "Weakspot",
 	},
 	aim_point_torso = {
 		en = "Torso",

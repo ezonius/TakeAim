@@ -265,15 +265,15 @@ return {
  					{ text = "camera_snap_off", value = "off" },
  				},
  			},
-			{
-				setting_id = "aim_point",
-				type = "dropdown",
-				default_value = "head",
-				options = {
-					{ text = "aim_point_head", value = "head" },
-					{ text = "aim_point_torso", value = "torso" },
-				},
+{
+			setting_id = "aim_point",
+			type = "dropdown",
+			default_value = "weakspot",
+			options = {
+				{ text = "aim_point_weakspot", value = "weakspot" },
+				{ text = "aim_point_torso", value = "torso" },
 			},
+		},
 			{
 				setting_id = "aim_offset",
 				type = "numeric",

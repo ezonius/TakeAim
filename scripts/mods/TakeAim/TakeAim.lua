@@ -16,7 +16,7 @@ local TARGET_RESULTS = {}
 local TARGET_POSITIONS = {}
 local TARGET_DISTANCES = {}
 local TARGET_NODES = {
-	head = "enemy_aim_target_03",
+	weakspot = "enemy_aim_target_03",
 	torso = "enemy_aim_target_02",
 }
 local CONE_ANGLES = {
@@ -69,6 +69,9 @@ local MONSTROSITY_BREEDS = {
 	chaos_mutator_daemonhost = "block_chaos_mutator_daemonhost",
 	chaos_ogryn_houndmaster = "block_chaos_ogryn_houndmaster",
 	chaos_plague_ogryn = "block_chaos_plague_ogryn",
+}
+local BREED_WEAKSPOT_HITZONES = {
+	chaos_beast_of_nurgle = "weakspot",
 }
 local CAMERA_SNAP_SPEEDS = {
 	off = 0,
@@ -123,7 +126,7 @@ local cached_shooting = false
 local last_shooting_t = 0
 local aim_assist_keybind_enabled = false
 local aim_assist_keybind_held = false
-local target_node = TARGET_NODES.head
+local target_node = TARGET_NODES.weakspot
 local aim_offset = 0
 local cone_angle = CONE_ANGLES.wide
 local target_range = RANGE_VALUES.medium
@@ -157,7 +160,7 @@ local function refresh_settings()
 	active = mod:get("enabled") ~= false
 	activation_mode = mod:get("activation_mode") or "ranged"
 	aim_assist_keybind_enabled = mod:get("aim_assist_keybind_enabled") == true
-	target_node = TARGET_NODES[mod:get("aim_point") or "head"] or TARGET_NODES.head
+	target_node = TARGET_NODES[mod:get("aim_point") or "weakspot"] or TARGET_NODES.weakspot
 	aim_offset = mod:get("aim_offset") or 0
 	cone_angle = CONE_ANGLES[mod:get("assist_cone") or "wide"] or CONE_ANGLES.wide
 	target_range = RANGE_VALUES[mod:get("target_range") or "medium"] or RANGE_VALUES.medium
@@ -403,9 +406,40 @@ local function should_enable_auto_aim(unit)
 	return is_alternate_fire_active(unit_data)
 end
 
+local function breed_from_unit_data(unit_data_extension)
+	if not unit_data_extension then
+		return nil
+	end
+
+	if unit_data_extension.breed then
+		return unit_data_extension:breed()
+	end
+
+	return unit_data_extension._breed
+end
+
 local function target_node_position(unit)
 	if not unit or not Unit.alive(unit) then
 		return nil
+	end
+
+	if target_node == TARGET_NODES.weakspot then
+		local unit_data = unit_data_extension(unit)
+		local breed = breed_from_unit_data(unit_data)
+		local breed_name = breed and breed.name
+		local weakspot_hitzone = breed_name and BREED_WEAKSPOT_HITZONES[breed_name]
+
+		if weakspot_hitzone then
+			local ok, pos = pcall(HitZone.hit_zone_center_of_mass, unit, weakspot_hitzone)
+
+			if ok and pos then
+				if aim_offset ~= 0 then
+					pos.z = pos.z + aim_offset
+				end
+
+				return pos
+			end
+		end
 	end
 
 	local ok, has_node = pcall(Unit.has_node, unit, target_node)
@@ -444,18 +478,6 @@ local function has_line_of_sight(smart_targeting_extension, ray_origin, target_p
 	local hit = Raycast.cast(raycast_object, ray_origin, Vector3.normalize(to_target), distance)
 
 	return not hit
-end
-
-local function breed_from_unit_data(unit_data_extension)
-	if not unit_data_extension then
-		return nil
-	end
-
-	if unit_data_extension.breed then
-		return unit_data_extension:breed()
-	end
-
-	return unit_data_extension._breed
 end
 
 local RAYCAST_INDEX_ACTOR = 4
