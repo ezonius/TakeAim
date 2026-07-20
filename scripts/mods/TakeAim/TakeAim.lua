@@ -5,6 +5,7 @@ local mod = get_mod("TakeAim")
 local Breed = require("scripts/utilities/breed")
 local BuffSettings = require("scripts/settings/buff/buff_settings")
 local Breeds = require("scripts/settings/breed/breeds")
+local HitZone = require("scripts/utilities/attack/hit_zone")
 local MinionPerception = require("scripts/utilities/minion_perception")
 local WeaponTemplate = require("scripts/utilities/weapon/weapon_template")
 local Recoil = require("scripts/utilities/recoil")
@@ -50,6 +51,24 @@ local SHOOTER_THREAT_BREEDS = {
 	cultist_gunner = true,
 	renegade_gunner = true,
 	renegade_plasma_gunner = true,
+}
+local SHOT_BLOCKER_BREEDS = {
+	chaos_ogryn_executor = "block_chaos_ogryn_executor",
+	chaos_ogryn_bulwark = "block_chaos_ogryn_bulwark",
+	chaos_ogryn_gunner = "block_chaos_ogryn_gunner",
+	renegade_executor = "block_renegade_executor",
+	cultist_captain = "block_cultist_captain",
+	renegade_captain = "block_renegade_captain",
+	renegade_twin_captain = "block_renegade_twin_captain",
+	renegade_twin_captain_two = "block_renegade_twin_captain_two",
+}
+local MONSTROSITY_BREEDS = {
+	chaos_beast_of_nurgle = "block_chaos_beast_of_nurgle",
+	chaos_spawn = "block_chaos_spawn",
+	chaos_daemonhost = "block_chaos_daemonhost",
+	chaos_mutator_daemonhost = "block_chaos_mutator_daemonhost",
+	chaos_ogryn_houndmaster = "block_chaos_ogryn_houndmaster",
+	chaos_plague_ogryn = "block_chaos_plague_ogryn",
 }
 local CAMERA_SNAP_SPEEDS = {
 	off = 0,
@@ -102,6 +121,7 @@ local cached_aiming = false
 local last_aiming_t = 0
 local cached_shooting = false
 local last_shooting_t = 0
+local aim_assist_keybind_held = false
 local target_node = TARGET_NODES.head
 local aim_offset = 0
 local cone_angle = CONE_ANGLES.wide
@@ -115,6 +135,8 @@ local include_specialists = true
 local include_bosses = true
 local include_regulars = false
 local breed_priorities = {}
+local shot_blockers_enabled = {}
+local any_shot_blocker_enabled = false
 local AIM_GRACE_WINDOW = 0.3
 local SHOOTING_GRACE_WINDOW = 0.3
 local TARGET_RETENTION_WINDOW = 0.3
@@ -150,6 +172,23 @@ local function refresh_settings()
 	include_specialists = mod:get("include_specialists") ~= false
 	include_bosses = mod:get("include_bosses") ~= false
 	include_regulars = mod:get("include_regulars") == true
+
+	table.clear(shot_blockers_enabled)
+	any_shot_blocker_enabled = false
+
+	for breed_name, setting_id in pairs(SHOT_BLOCKER_BREEDS) do
+		if mod:get(setting_id) then
+			shot_blockers_enabled[breed_name] = true
+			any_shot_blocker_enabled = true
+		end
+	end
+
+	for breed_name, setting_id in pairs(MONSTROSITY_BREEDS) do
+		if mod:get(setting_id) then
+			shot_blockers_enabled[breed_name] = true
+			any_shot_blocker_enabled = true
+		end
+	end
 
 	table.clear(breed_priorities)
 
@@ -300,9 +339,27 @@ local function is_shooting(unit)
 		return false
 	end
 
-	local input_extension = ScriptUnit.has_extension(unit, "input_system")
+	local is_currently_shooting = false
+	local unit_data = unit_data_extension(unit)
+	local shooting_status_component = unit_data and unit_data:read_component("shooting_status")
 
-	if input_extension and input_extension:get("action_one_hold") then
+	if shooting_status_component then
+		local t = gameplay_time()
+
+		if shooting_status_component.shooting or t <= shooting_status_component.shooting_end_time + SHOOTING_GRACE_WINDOW then
+			is_currently_shooting = true
+		end
+	end
+
+	if not is_currently_shooting then
+		local input_extension = ScriptUnit.has_extension(unit, "input_system")
+
+		if input_extension and input_extension:get("action_one_hold") then
+			is_currently_shooting = true
+		end
+	end
+
+	if is_currently_shooting then
 		cached_shooting = true
 		last_shooting_t = gameplay_time()
 
@@ -335,6 +392,10 @@ local function should_enable_auto_aim(unit)
 
 	if activation_mode == "ranged_hold_shoot" then
 		return is_shooting(unit)
+	end
+
+	if activation_mode == "keybind" then
+		return aim_assist_keybind_held
 	end
 
 	return is_alternate_fire_active(unit_data)
@@ -393,6 +454,61 @@ local function breed_from_unit_data(unit_data_extension)
 	end
 
 	return unit_data_extension._breed
+end
+
+local RAYCAST_INDEX_ACTOR = 4
+
+local function is_path_blocked_by_enemy(smart_targeting_extension, ray_origin, target_position, target_unit)
+	if not any_shot_blocker_enabled then
+		return false
+	end
+
+	local physics_world = smart_targeting_extension and smart_targeting_extension._physics_world
+
+	if not physics_world or not PhysicsWorld or not PhysicsWorld.raycast then
+		return false
+	end
+
+	local to_target = target_position - ray_origin
+	local distance = Vector3.length(to_target)
+
+	if distance <= 0 then
+		return false
+	end
+
+	local direction = Vector3.normalize(to_target)
+	local ok, hits, num_hits = pcall(PhysicsWorld.raycast, physics_world, ray_origin, direction, distance, "all", "types", "both", "max_hits", 32, "collision_filter", "filter_player_character_shooting_raycast")
+
+	if not ok or not hits or not num_hits or num_hits <= 0 then
+		return false
+	end
+
+	local player_unit = smart_targeting_extension and smart_targeting_extension._unit
+
+	for i = 1, num_hits do
+		local hit = hits[i]
+		local hit_actor = hit and (hit.actor or hit[RAYCAST_INDEX_ACTOR])
+
+		if hit_actor then
+			local hit_unit = Actor.unit(hit_actor)
+
+			if hit_unit and hit_unit ~= player_unit and hit_unit ~= target_unit and HEALTH_ALIVE[hit_unit] then
+				local hit_zone_name = HitZone.get_name(hit_unit, hit_actor)
+
+				if hit_zone_name ~= HitZone.hit_zone_names.afro then
+					local unit_data = ScriptUnit.has_extension(hit_unit, "unit_data_system")
+					local breed = breed_from_unit_data(unit_data)
+					local breed_name = breed and breed.name
+
+					if breed_name and shot_blockers_enabled[breed_name] then
+						return true
+					end
+				end
+			end
+		end
+	end
+
+	return false
 end
 
 local function is_boss_breed(breed)
@@ -578,6 +694,7 @@ local function retained_target_position(smart_targeting_extension, ray_origin, f
 	if distance <= target_range
 		and dot >= math.cos(max_angle * 1.5)
 		and has_line_of_sight(smart_targeting_extension, ray_origin, target_position)
+		and not is_path_blocked_by_enemy(smart_targeting_extension, ray_origin, target_position, retained_target_unit)
 	then
 		retained_target_until = gameplay_time() + TARGET_RETENTION_WINDOW
 
@@ -683,7 +800,7 @@ local function find_cone_target(smart_targeting_extension, raw_aim_rotation)
 				local direction = distance > 0 and Vector3.normalize(to_target) or nil
 				local dot = direction and Vector3.dot(forward, direction) or -1
 
-				if dot >= max_dot and has_line_of_sight(smart_targeting_extension, ray_origin, target_position) then
+				if dot >= max_dot and has_line_of_sight(smart_targeting_extension, ray_origin, target_position) and not is_path_blocked_by_enemy(smart_targeting_extension, ray_origin, target_position, target_unit) then
 					local angle = math.acos(math.clamp(dot, -1, 1))
 					local aim_score = (angle / max_angle) * 1.8 + (distance / target_range) * 0.2
 					local rank = target_priority_rank(target_unit, unit_data)
@@ -816,16 +933,21 @@ mod.on_enabled = function()
 	active = true
 	refresh_settings()
 end
+mod.kb_aim_assist_held = function(is_pressed)
+	aim_assist_keybind_held = is_pressed == true
+end
 mod.on_disabled = function()
 	active = false
 	cached_aiming = false
 	last_aiming_t = 0
+	aim_assist_keybind_held = false
 	retained_target_unit = nil
 	retained_target_until = 0
 end
 mod.on_game_state_changed = function()
 	cached_aiming = false
 	last_aiming_t = 0
+	aim_assist_keybind_held = false
 	retained_target_unit = nil
 	retained_target_until = 0
 end

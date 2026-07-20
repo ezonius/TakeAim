@@ -8,5 +8,6 @@ return {
 			mod_localization = "TakeAim/scripts/mods/TakeAim/TakeAim_localization",
 		})
 	end,
+	load_before = { "HoldFire" },
 	packages = {},
 }

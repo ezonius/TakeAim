@@ -29,8 +29,17 @@ local localization = {
 	activation_mode_ranged_hold_shoot = {
 		en = "Ranged (holding shoot input)",
 	},
+	activation_mode_keybind = {
+		en = "Keybind (hold to aim)",
+	},
 	activation_mode_disabled = {
 		en = "Disabled",
+	},
+	aim_assist_keybind = {
+		en = "Aim Assist Keybind",
+	},
+	aim_assist_keybind_description = {
+		en = "Hold this key to activate Take Aim's camera snap and aim assist while a ranged weapon is equipped. Only used when Activation Mode is set to Keybind.",
 	},
 	assist_cone = {
 		en = "Assist Cone",
@@ -209,6 +218,12 @@ local localization = {
 	target_retention_window_description = {
 		en = "Controls how long Take Aim stays locked on the current target before looking for a new one.",
 	},
+	shot_blockers = {
+		en = "Shot Blockers",
+	},
+	shot_blockers_description = {
+		en = "Choose which enemies block the path to a target. When a toggled enemy is in the way, Take Aim will not aim toward the target behind it.",
+	},
 }
 
 local function add_breed_localization(breed_name, breed_data)
@@ -227,6 +242,42 @@ local function add_breed_localization(breed_name, breed_data)
 	}
 end
 
+local SHOT_BLOCKER_BREEDS = {
+	chaos_ogryn_executor = "block_chaos_ogryn_executor",
+	chaos_ogryn_bulwark = "block_chaos_ogryn_bulwark",
+	chaos_ogryn_gunner = "block_chaos_ogryn_gunner",
+	renegade_executor = "block_renegade_executor",
+	cultist_captain = "block_cultist_captain",
+	renegade_captain = "block_renegade_captain",
+	renegade_twin_captain = "block_renegade_twin_captain",
+	renegade_twin_captain_two = "block_renegade_twin_captain_two",
+}
+
+local MONSTROSITY_BREEDS = {
+	chaos_beast_of_nurgle = "block_chaos_beast_of_nurgle",
+	chaos_spawn = "block_chaos_spawn",
+	chaos_daemonhost = "block_chaos_daemonhost",
+	chaos_mutator_daemonhost = "block_chaos_mutator_daemonhost",
+	chaos_ogryn_houndmaster = "block_chaos_ogryn_houndmaster",
+	chaos_plague_ogryn = "block_chaos_plague_ogryn",
+}
+
+local function add_shot_blocker_localization(breed_name, breed_data)
+	local display_name = breed_data.is_boss
+		and type(breed_data.boss_display_name) == "string"
+		and breed_data.boss_display_name
+		or breed_data.display_name
+	local text = display_name and Localize(display_name) or breed_name
+
+	if breed_name ~= "chaos_mutator_daemonhost" and string.find(breed_name, "mutator") then
+		text = text .. " (mutator)"
+	end
+
+	localization["block_" .. breed_name] = {
+		en = text,
+	}
+end
+
 local REQUESTED_BREEDS = {
 	cultist_assault = true,
 	cultist_vanguard = true,
@@ -238,6 +289,10 @@ local REQUESTED_BREEDS = {
 for breed_name, breed_data in pairs(Breeds) do
 	if Breed.is_minion(breed_data) and (breed_data.smart_tag_target_type == "breed" or REQUESTED_BREEDS[breed_name]) then
 		add_breed_localization(breed_name, breed_data)
+
+		if SHOT_BLOCKER_BREEDS[breed_name] or MONSTROSITY_BREEDS[breed_name] then
+			add_shot_blocker_localization(breed_name, breed_data)
+		end
 	end
 end
 

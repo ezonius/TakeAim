@@ -26,6 +26,26 @@ local SHOOTER_THREAT_BREEDS = {
 	renegade_plasma_gunner = true,
 }
 
+local SHOT_BLOCKER_BREEDS = {
+	chaos_ogryn_executor = "block_chaos_ogryn_executor",
+	chaos_ogryn_bulwark = "block_chaos_ogryn_bulwark",
+	chaos_ogryn_gunner = "block_chaos_ogryn_gunner",
+	renegade_executor = "block_renegade_executor",
+	cultist_captain = "block_cultist_captain",
+	renegade_captain = "block_renegade_captain",
+	renegade_twin_captain = "block_renegade_twin_captain",
+	renegade_twin_captain_two = "block_renegade_twin_captain_two",
+}
+
+local MONSTROSITY_BREEDS = {
+	chaos_beast_of_nurgle = "block_chaos_beast_of_nurgle",
+	chaos_spawn = "block_chaos_spawn",
+	chaos_daemonhost = "block_chaos_daemonhost",
+	chaos_mutator_daemonhost = "block_chaos_mutator_daemonhost",
+	chaos_ogryn_houndmaster = "block_chaos_ogryn_houndmaster",
+	chaos_plague_ogryn = "block_chaos_plague_ogryn",
+}
+
 local function default_breed_priority(breed_name, breed_data)
 	local tags = breed_data.tags or {}
 
@@ -91,9 +111,29 @@ for breed_name, breed_data in pairs(Breeds) do
 	end
 end
 
+local function create_blocker_toggle(setting_id)
+	return {
+		setting_id = setting_id,
+		type = "checkbox",
+		default_value = false,
+	}
+end
+
+local shot_blocker_widgets = {}
+
+for breed_name, setting_id in pairs(SHOT_BLOCKER_BREEDS) do
+	shot_blocker_widgets[#shot_blocker_widgets + 1] = create_blocker_toggle(setting_id)
+end
+
+for breed_name, setting_id in pairs(MONSTROSITY_BREEDS) do
+	shot_blocker_widgets[#shot_blocker_widgets + 1] = create_blocker_toggle(setting_id)
+end
+
 local function localized_sort(a, b)
 	return mod:localize(a.setting_id) < mod:localize(b.setting_id)
 end
+
+table.sort(shot_blocker_widgets, localized_sort)
 
 table.sort(elite_priorities, localized_sort)
 table.sort(special_priorities, localized_sort)
@@ -141,11 +181,21 @@ return {
 				type = "dropdown",
 				default_value = "ranged",
 				options = {
-					{ text = "activation_mode_ads_only", value = "ads_only" },
+					{ text = "activation_mode_ads_only",          value = "ads_only" },
 					{ text = "activation_mode_ranged_hold_shoot", value = "ranged_hold_shoot" },
-					{ text = "activation_mode_ranged", value = "ranged" },
-					{ text = "activation_mode_disabled", value = "disabled" },
+					{ text = "activation_mode_keybind",           value = "keybind" },
+					{ text = "activation_mode_ranged",            value = "ranged" },
+					{ text = "activation_mode_disabled",          value = "disabled" },
 				},
+			},
+			{
+				setting_id      = "aim_assist_keybind",
+				type            = "keybind",
+				default_value   = {},
+				keybind_global  = false,
+				keybind_trigger = "held",
+				keybind_type    = "function_call",
+				function_name   = "kb_aim_assist_held",
 			},
 			{
 				setting_id = "assist_cone",
@@ -245,6 +295,11 @@ return {
 				default_value = 0.3,
 				range = { 0, 1.0 },
 				decimals_number = 2,
+			},
+			{
+				setting_id = "shot_blockers",
+				type = "group",
+				sub_widgets = shot_blocker_widgets,
 			},
 		},
 	},
